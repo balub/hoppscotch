@@ -612,11 +612,11 @@ const parseOpenAPIDocContent = (str: string) =>
     )
   )
 
-export const hoppOpenAPIImporter = (fileContent: string) =>
+export const hoppOpenAPIImporter = (fileContents: string[]) =>
   pipe(
     // See if we can parse JSON properly
-    fileContent,
-    parseOpenAPIDocContent,
+    fileContents,
+    A.traverse(O.Applicative)(parseOpenAPIDocContent),
     TE.fromOption(() => {
       return IMPORTER_INVALID_FILE_FORMAT
     }),
