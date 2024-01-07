@@ -17,15 +17,28 @@ const hoppEnvSchema = z.object({
   ),
 })
 
-export const hoppEnvImporter = (contents: string[]) => {
-  const parsedContents = contents.map((str) => safeParseJSON(str))
+type HoppEnv = z.infer<typeof hoppEnvSchema>
 
-  // check if any of the JSON parse results is None
+export const hoppEnvImporter = (contents: string[]) => {
+  const parsedContents = contents.map((str) => safeParseJSON(str, true))
+
   if (parsedContents.some((parsed) => O.isNone(parsed))) {
     return TE.left(IMPORTER_INVALID_FILE_FORMAT)
   }
 
-  const parsedValues = parsedContents.flatMap((parsed) => O.toNullable(parsed))
+  const parsedValues = parsedContents.flatMap((content) => {
+    const unwrappedContent = O.toNullable(content) as HoppEnv[]
+
+    return unwrappedContent.map((contentEntry) => {
+      return {
+        ...contentEntry,
+        variables: contentEntry.variables.map((valueEntry) => ({
+          ...valueEntry,
+          value: String(valueEntry.value),
+        })),
+      }
+    })
+  })
 
   const validationResult = z.array(hoppEnvSchema).safeParse(parsedValues)
 
